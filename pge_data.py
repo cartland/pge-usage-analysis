@@ -1,6 +1,7 @@
 import pandas as pd
 import glob
 import os
+import re
 
 class PGEData:
     def __init__(self, df):
@@ -47,20 +48,21 @@ class PGEData:
                 skiprows = PGEData.find_skiprows(filepath)
                 df = pd.read_csv(filepath, skiprows=skiprows)
 
-                # Rename columns to a consistent format
-                if 'USAGE (kWh)' in df.columns:
-                  df.rename(columns={'USAGE (kWh)': 'USAGE'}, inplace=True)
-                if 'IMPORT (kWh)' in df.columns:
-                  df.rename(columns={'IMPORT (kWh)': 'USAGE'}, inplace=True)
-                if 'USAGE (therms)' in df.columns:
-                  df.rename(columns={'USAGE (therms)': 'USAGE'}, inplace=True)
+                # Add a USAGE_UNIT column based on usage columns
+                df['USAGE_UNIT'] = df.apply(lambda row: PGEData.extract_usage_unit(row), axis=1)
 
-                # Add a UNITS column if it doesn't exist
-                if 'UNITS' not in df.columns:
-                  if 'EXPORT (kWh)' in df.columns:
-                    df['UNITS'] = 'kWh'
-                  elif any("therms" in col.lower() for col in df.columns):
-                    df['UNITS'] = 'therms'
+                # Calculate net usage (IMPORT - EXPORT)
+                if 'IMPORT (kWh)' in df.columns and 'EXPORT (kWh)' in df.columns:
+                    df['USAGE'] = pd.to_numeric(df['IMPORT (kWh)'], errors='coerce') - \
+                                  pd.to_numeric(df['EXPORT (kWh)'], errors='coerce')
+                elif 'USAGE (kWh)' in df.columns:
+                    df['USAGE'] = pd.to_numeric(df['USAGE (kWh)'], errors='coerce')
+                elif 'USAGE (therms)' in df.columns:
+                    df['USAGE'] = pd.to_numeric(df['USAGE (therms)'], errors='coerce')
+                
+                # Parse COST correctly
+                if 'COST' in df.columns:
+                    df['COST'] = pd.to_numeric(df['COST'].astype(str).replace(r'[$,]', '', regex=True), errors='coerce')
 
                 dfs.append(df)
             except FileNotFoundError:
@@ -71,6 +73,24 @@ class PGEData:
             return PGEData(combined_df)
         else:
             return None
+        
+    @staticmethod
+    def extract_usage_unit(row):
+        """
+        Extracts the usage unit (e.g., kWh, therms) from the row.
+
+        Args:
+            row: A row of the DataFrame.
+
+        Returns:
+            The usage unit as a string, or None if not found.
+        """
+        for col in row.index:
+            if 'USAGE' in col or 'IMPORT' in col or 'EXPORT' in col:
+                match = re.search(r"\((.*?)\)", col)
+                if match:
+                    return match.group(1)
+        return None
 
     def filter(self, filter_func):
         """Filters the data based on a filter function.
@@ -140,38 +160,65 @@ class Filter:
         else:
             raise ValueError(f"Unsupported operator: {self.operator}")
 
+def display_summary(data):
+    """
+    Displays a formatted summary of the PGE data, separated by year.
+
+    Args:
+        data: A PGEData object containing the usage data.
+    """
+
+    if data is None or data.df.empty:
+        print("No data to display.")
+        return
+
+    # Convert 'DATE' to datetime objects
+    data.df['DATE'] = pd.to_datetime(data.df['DATE'])
+
+    # Add 'YEAR' and 'MONTH' columns
+    data.df['YEAR'] = data.df['DATE'].dt.year
+    data.df['MONTH'] = data.df['DATE'].dt.month
+
+    # Filter for electric usage
+    data = data.filter(Filter("TYPE", "contains", "Electric usage"))
+
+    # Get unique years
+    years = sorted(data.df['YEAR'].unique())
+
+    for year in years:
+        print(f"----- {year} -----")
+
+        # Filter data for the current year
+        year_data = data.df[data.df['YEAR'] == year]
+
+        # Calculate total usage and cost for the year
+        total_usage = year_data['USAGE'].sum()
+        total_cost = year_data['COST'].sum()
+
+        # Get the usage unit
+        usage_unit = year_data['USAGE_UNIT'].iloc[0] if not year_data['USAGE_UNIT'].empty else ''
+
+        print(f"Total Usage: {total_usage:.2f} {usage_unit}")
+        print(f"Total Cost: ${total_cost:.2f}")
+
+        # Prepare monthly data
+        monthly_data = year_data.groupby('MONTH').agg({'USAGE': 'sum', 'COST': 'sum'}).reset_index()
+        monthly_data.rename(columns={'USAGE': 'Monthly Usage', 'COST': 'Monthly Cost'}, inplace=True)
+
+        # Ensure all months are represented
+        all_months = pd.DataFrame({'MONTH': range(1, 13)})
+        monthly_data = pd.merge(all_months, monthly_data, on='MONTH', how='left')
+
+        # Display monthly data
+        print("\nMonthly Usage and Cost:")
+        print(monthly_data.to_string(index=False, na_rep=""))
+        print("\n")
+
 # Example usage:
 if __name__ == "__main__":
-    # Assuming you have a directory named 'pge_data' with CSV files
     data = PGEData.load_directory('pge_data', recursive=True)
 
     if data is None:
         print("No data loaded.")
     else:
-        # Convert 'DATE' to datetime objects for easier date manipulation
-        data.df['DATE'] = pd.to_datetime(data.df['DATE'])
-
-        # Add a 'YEAR' column
-        data = data.add_column("YEAR", lambda row: row['DATE'].year)
-
-        # Filter for "Electric usage" in 'TYPE' column
-        filter_electric = Filter("TYPE", "contains", "Electric usage")
-        data = data.filter(filter_electric)
-
-        # Filter for 'YEAR' equals 2024
-        filter_year = Filter("YEAR", "equals", 2024)
-        data = data.filter(filter_year)
-
-        # Convert 'USAGE' to numeric, handling potential errors
-        data.df['USAGE'] = pd.to_numeric(data.df['USAGE'], errors='coerce')
-
-        # Group by 'MONTH' and calculate the sum of 'USAGE' for each month
-        temp_df = data.df.copy()
-        temp_df['MONTH'] = temp_df['DATE'].dt.month
-        grouped_data = temp_df.groupby('MONTH').agg({'USAGE': 'sum'}).reset_index()
-        grouped_data.rename(columns={'USAGE': 'TOTAL_USAGE'}, inplace=True)
-
-        data = PGEData(grouped_data)
-
-        for row in data:
-            print(row.MONTH, row.TOTAL_USAGE)
+        display_summary(data)
