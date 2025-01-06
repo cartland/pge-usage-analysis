@@ -290,7 +290,6 @@ def display(summary_data):
         # Display the table for this usage type
         display_table(combined_monthly_data, usage_type, years)
 
-# Example usage:
 if __name__ == "__main__":
     data = PGEData.load_directory('pge_data', recursive=True)
 
