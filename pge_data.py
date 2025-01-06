@@ -151,7 +151,8 @@ class Filter:
 
 def display_summary(data):
     """
-    Displays a formatted summary of the PGE data, separated by year and usage type.
+    Displays a formatted summary of the PGE data in two tables (electric and gas),
+    with years displayed side-by-side for each month.
 
     Args:
         data: A PGEData object containing the usage data.
@@ -169,59 +170,51 @@ def display_summary(data):
     data.df['MONTH'] = data.df['DATE'].dt.month
     data.df['USAGE_TYPE'] = data.df['TYPE'].apply(lambda x: 'Electric usage' if 'Electric usage' in str(x) else 'Natural gas usage' if 'Natural gas usage' in str(x) else None)
 
-    # Get unique years
+    # Get unique years and usage types
     years = sorted(data.df['YEAR'].unique())
-
-    # Define usage types
     usage_types = ["Electric usage", "Natural gas usage"]
 
-    for year in years:
-        print(f"----- {year} -----")
+    for usage_type in usage_types:
+        print(f"\n*** {usage_type.upper()} ***\n")
 
-        # Filter data for the current year
-        year_data = data.df[data.df['YEAR'] == year]
+        # Filter data for the current usage type
+        type_data = data.df[data.df['USAGE_TYPE'] == usage_type]
 
-        for usage_type in usage_types:
-            print(f"\n*** {usage_type.upper()} ***\n")
+        if type_data.empty:
+            print("No data available.\n")
+            continue
 
-            # Filter data for the current usage type
-            type_data = year_data[year_data['USAGE_TYPE'] == usage_type]
+        # Create a pivot table for the current usage type
+        pivot_table = pd.pivot_table(
+            type_data,
+            values=['USAGE', 'COST'],
+            index=['MONTH'],
+            columns=['YEAR'],
+            aggfunc={'USAGE': 'sum', 'COST': 'sum'},
+            fill_value="N/A"
+        )
+        
+        # Flatten MultiIndex columns and format the values
+        pivot_table.columns = [f'{col[0]} {col[1]}' for col in pivot_table.columns.values]
+        for col in pivot_table.columns:
+            if 'USAGE' in col:
+                unit = type_data['UNITS'].dropna().iloc[0] if not type_data['UNITS'].dropna().empty else 'N/A'
+                pivot_table[col] = pivot_table[col].apply(lambda x: f"{x:.2f} {unit}" if pd.notna(x) else "N/A")
+            elif 'COST' in col:
+                pivot_table[col] = pivot_table[col].apply(lambda x: f"${x:.2f}" if pd.notna(x) else "N/A")
 
-            if type_data.empty:
-                print("No data available.\n")
-                continue
+        # Ensure all months are represented
+        all_months = pd.DataFrame({'MONTH': range(1, 13)})
+        pivot_table = pd.merge(all_months, pivot_table, on='MONTH', how='left')
 
-            # Calculate total usage and cost for the year
-            total_usage = type_data['USAGE'].sum()
-            total_cost = type_data['COST'].sum()
+        # Reorder columns to have years in ascending order
+        year_cols = [col for col in pivot_table.columns if 'USAGE' in col or 'COST' in col]
+        year_cols.sort(key=lambda x: int(x.split()[-1]))  # Sort by year numerically
+        pivot_table = pivot_table[['MONTH'] + year_cols]
 
-            # Get the usage unit for the current type
-            usage_unit = type_data['UNITS'].dropna().iloc[0] if not type_data['UNITS'].dropna().empty else 'N/A'
-
-            # Use "N/A" if total cost is NaN
-            total_cost_str = f"${total_cost:.2f}" if pd.notna(total_cost) else "N/A"
-
-            print(f"Total Usage: {total_usage:.2f} {usage_unit}")
-            print(f"Total Cost: {total_cost_str}")
-
-            # Prepare monthly data
-            monthly_data = type_data.groupby('MONTH').agg({'USAGE': 'sum', 'COST': 'sum'}).reset_index()
-            monthly_data.rename(columns={'USAGE': 'Monthly Usage', 'COST': 'Monthly Cost'}, inplace=True)
-
-            # Ensure all months are represented
-            all_months = pd.DataFrame({'MONTH': range(1, 13)})
-            monthly_data = pd.merge(all_months, monthly_data, on='MONTH', how='left')
-
-            # Add the usage unit to the monthly usage column
-            monthly_data['Monthly Usage'] = monthly_data.apply(lambda row: f"{row['Monthly Usage']:.2f} {usage_unit}" if pd.notna(row['Monthly Usage']) else "N/A", axis=1)
-
-            # Replace NaN with "N/A" in the monthly data
-            monthly_data.fillna("N/A", inplace=True)
-
-            # Display monthly data
-            print("\nMonthly Usage and Cost:")
-            print(monthly_data.to_string(index=False))
-            print("\n")
+        # Display the pivot table
+        print(pivot_table.to_string(index=False))
+        print("\n")
 
 # Example usage:
 if __name__ == "__main__":
