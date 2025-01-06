@@ -149,17 +149,19 @@ class Filter:
         else:
             raise ValueError(f"Unsupported operator: {self.operator}")
 
-def display_summary(data):
+def summary_data(data):
     """
-    Displays a formatted summary of the PGE data, separated by year and usage type.
+    Extracts summary data from the PGEData object, separated by year and usage type.
 
     Args:
         data: A PGEData object containing the usage data.
+
+    Returns:
+        A dictionary containing the summary data, organized by year and usage type.
     """
 
     if data is None or data.df.empty:
-        print("No data to display.")
-        return
+        return None
 
     # Convert 'DATE' to datetime objects
     data.df['DATE'] = pd.to_datetime(data.df['DATE'])
@@ -173,58 +175,82 @@ def display_summary(data):
     years = sorted(data.df['YEAR'].unique())
     usage_types = ["Electric usage", "Natural gas usage"]
 
-    for usage_type in usage_types:
-        print(f"\n*** {usage_type.upper()} ***\n")
+    summary = {}
 
-        # Filter data for the current usage type
-        type_data = data.df[data.df['USAGE_TYPE'] == usage_type]
+    for year in years:
+        summary[year] = {}
+        # Filter data for the current year
+        year_data = data.df[data.df['YEAR'] == year]
 
-        if type_data.empty:
-            print("No data available.\n")
-            continue
+        for usage_type in usage_types:
+            summary[year][usage_type] = {}
 
-        # Create a pivot table for the current usage type
-        pivot_table = pd.pivot_table(
-            type_data,
-            values=['USAGE', 'COST'],
-            index=['MONTH'],
-            columns=['YEAR'],
-            aggfunc={'USAGE': 'sum', 'COST': 'sum'},
-            fill_value=None
-        )
+            # Filter data for the current usage type
+            type_data = year_data[year_data['USAGE_TYPE'] == usage_type]
 
-        # Calculate yearly totals and add them as a row
-        yearly_totals = type_data.groupby('YEAR').agg({'USAGE': 'sum', 'COST': 'sum'})
-        yearly_totals['MONTH'] = 'Yearly Total'
-        yearly_totals = yearly_totals.set_index('MONTH')
-        pivot_table = pd.concat([pivot_table, yearly_totals])
+            if type_data.empty:
+                summary[year][usage_type]['total_usage'] = None
+                summary[year][usage_type]['total_cost'] = None
+                summary[year][usage_type]['monthly_data'] = None
+                summary[year][usage_type]['unit'] = None
+                continue
 
-        # Flatten MultiIndex columns and format the values
-        pivot_table.columns = [f'{col[0]} {col[1]}' for col in pivot_table.columns.values]
-        
-        # Ensure all months are represented
-        all_months = pd.DataFrame({'MONTH': range(1, 13)})
-        all_months['MONTH'] = all_months['MONTH'].astype(str)
-        pivot_table.reset_index(inplace=True)
-        pivot_table['MONTH'] = pivot_table['MONTH'].astype(str)
-        pivot_table = pd.merge(all_months, pivot_table, on='MONTH', how='outer')
+            # Calculate total usage and cost for the year
+            total_usage = type_data['USAGE'].sum()
+            total_cost = type_data['COST'].sum()
 
-        # Reorder columns to have years in ascending order
-        year_cols = [col for col in pivot_table.columns if 'USAGE' in col or 'COST' in col]
-        year_cols.sort(key=lambda x: int(x.split()[-1]))  # Sort by year numerically
-        pivot_table = pivot_table[['MONTH'] + year_cols]
+            # Get the usage unit for the current type
+            usage_unit = type_data['UNITS'].dropna().iloc[0] if not type_data['UNITS'].dropna().empty else 'N/A'
 
-        # Format the values in the pivot table after merging
-        for col in pivot_table.columns:
-            if 'USAGE' in col:
-                unit = type_data['UNITS'].dropna().iloc[0] if not type_data['UNITS'].dropna().empty else 'N/A'
-                pivot_table[col] = pivot_table[col].apply(lambda x: f"{x:.2f} {unit}" if pd.notna(x) else "N/A")
-            elif 'COST' in col:
-                pivot_table[col] = pivot_table[col].apply(lambda x: f"${x:.2f}" if pd.notna(x) else "N/A")
+            # Prepare monthly data
+            monthly_data = type_data.groupby('MONTH').agg({'USAGE': 'sum', 'COST': 'sum'}).reset_index()
+            monthly_data.rename(columns={'USAGE': 'Monthly Usage', 'COST': 'Monthly Cost'}, inplace=True)
 
-        # Display the pivot table
-        print(pivot_table.to_string(index=False))
-        print("\n")
+            # Ensure all months are represented
+            all_months = pd.DataFrame({'MONTH': range(1, 13)})
+            monthly_data = pd.merge(all_months, monthly_data, on='MONTH', how='left')
+
+            summary[year][usage_type]['total_usage'] = total_usage
+            summary[year][usage_type]['total_cost'] = total_cost
+            summary[year][usage_type]['monthly_data'] = monthly_data
+            summary[year][usage_type]['unit'] = usage_unit
+
+    return summary
+
+def display(summary_data):
+    """
+    Displays the summary data in a formatted way.
+
+    Args:
+        summary_data: A dictionary containing the summary data, as returned by summary_data().
+    """
+
+    if not summary_data:
+        print("No data to display.")
+        return
+
+    for year, usage_types in summary_data.items():
+        print(f"----- {year} -----")
+        for usage_type, data in usage_types.items():
+            print(f"\n*** {usage_type.upper()} ***\n")
+
+            if data['total_usage'] is None:
+                print("No data available.\n")
+                continue
+
+            total_cost_str = f"${data['total_cost']:.2f}" if pd.notna(data['total_cost']) else "N/A"
+            print(f"Total Usage: {data['total_usage']:.2f} {data['unit']}")
+            print(f"Total Cost: {total_cost_str}")
+
+            if data['monthly_data'] is not None:
+                # Format monthly data
+                monthly_data = data['monthly_data'].copy()
+                monthly_data['Monthly Usage'] = monthly_data.apply(lambda row: f"{row['Monthly Usage']:.2f} {data['unit']}" if pd.notna(row['Monthly Usage']) else "N/A", axis=1)
+                monthly_data['Monthly Cost'] = monthly_data.apply(lambda row: f"${row['Monthly Cost']:.2f}" if pd.notna(row['Monthly Cost']) else "N/A", axis=1)
+                
+                print("\nMonthly Usage and Cost:")
+                print(monthly_data.to_string(index=False))
+                print("\n")
 
 # Example usage:
 if __name__ == "__main__":
@@ -233,4 +259,5 @@ if __name__ == "__main__":
     if data is None:
         print("No data loaded.")
     else:
-        display_summary(data)
+        summary = summary_data(data)
+        display(summary)
