@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Utility Usage</title>
+<style>
+body {
+  font-family: sans-serif;
+}
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+th, td {
+  border: 1px solid black;
+  text-align: center;
+  padding: 8px;
+}
+th {
+  background-color: #f2f2f2;
+}
+.year-label {
+    font-weight: bold;
+}
+.kwh-label {
+  font-size: smaller;
+}
+.zero-cost {
+  color: gray;
+}
+</style>
+</head>
+<body>
+
+<h2>*** ELECTRIC USAGE ***</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th rowspan="2">MONTH</th>
+      <th colspan="2">2020</th>
+      <th colspan="2">2021</th>
+      <th colspan="2">2022</th>
+      <th colspan="2">2023</th>
+      <th colspan="2">2024</th>
+    </tr>
+    <tr>
+        <th class="year-label">COST</th>
+        <th class="year-label">USAGE<br><span class="kwh-label">(kWh)</span></th>
+        <th class="year-label">COST</th>
+        <th class="year-label">USAGE<br><span class="kwh-label">(kWh)</span></th>
+        <th class="year-label">COST</th>
+        <th class="year-label">USAGE<br><span class="kwh-label">(kWh)</span></th>
+        <th class="year-label">COST</th>
+        <th class="year-label">USAGE<br><span class="kwh-label">(kWh)</span></th>
+        <th class="year-label">COST</th>
+        <th class="year-label">USAGE<br><span class="kwh-label">(kWh)</span></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>1</td><td>$53.44</td><td>219.56</td><td>$170.08</td><td>614.12</td><td class="zero-cost">$0.00</td><td>634.84</td><td class="zero-cost">$0.00</td><td>61.26</td><td>$89.86</td><td>177.40</td></tr>
+    <tr><td>2</td><td>$49.40</td><td>200.36</td><td>$153.52</td><td>556.20</td><td class="zero-cost">$0.00</td><td>595.64</td><td class="zero-cost">$0.00</td><td>-100.65</td><td>$-16.67</td><td>-61.36</td></tr>
+    <tr><td>3</td><td>$137.28</td><td>516.48</td><td>$181.96</td><td>634.00</td><td class="zero-cost">$0.00</td><td>73.00</td><td class="zero-cost">$0.00</td><td>-224.02</td><td>$-119.75</td><td>-305.07</td></tr>
+    <tr><td>4</td><td>$179.79</td><td>657.64</td><td>$154.28</td><td>539.28</td><td class="zero-cost">$0.00</td><td>-533.14</td><td class="zero-cost">$0.00</td><td>-665.92</td><td>$-72.03</td><td>-194.75</td></tr>
+    <tr><td>5</td><td>$205.09</td><td>721.76</td><td>$110.88</td><td>390.04</td><td class="zero-cost">$0.00</td><td>-699.61</td><td class="zero-cost">$0.00</td><td>-658.55</td><td>$-280.69</td><td>-664.41</td></tr>
+    <tr><td>6</td><td>$167.74</td><td>584.96</td><td>$116.72</td><td>413.36</td><td class="zero-cost">$0.00</td><td>-714.01</td><td class="zero-cost">$0.00</td><td>-779.09</td><td>$-300.86</td><td>-710.91</td></tr>
+    <tr><td>7</td><td>$15.64</td><td>63.64</td><td>$119.88</td><td>419.32</td><td class="zero-cost">$0.00</td><td>-657.43</td><td class="zero-cost">$0.00</td><td>-709.36</td><td>$-236.22</td><td>-624.73</td></tr>
+    <tr><td>8</td><td>$195.06</td><td>676.96</td><td>$134.12</td><td>463.84</td><td class="zero-cost">$0.00</td><td>-479.34</td><td class="zero-cost">$0.00</td><td>-701.32</td><td>$-176.04</td><td>-480.99</td></tr>
+    <tr><td>9</td><td>$113.36</td><td>408.60</td><td>$203.96</td><td>693.76</td><td class="zero-cost">$0.00</td><td>-282.11</td><td class="zero-cost">$0.00</td><td>-299.67</td><td>$-84.02</td><td>-265.44</td></tr>
+    <tr><td>10</td><td>$191.83</td><td>687.12</td><td>$184.08</td><td>639.28</td><td class="zero-cost">$0.00</td><td>73.75</td><td class="zero-cost">$0.00</td><td>-196.41</td><td>$69.25</td><td>124.30</td></tr>
+    <tr><td>11</td><td>$165.24</td><td>575.96</td><td>$127.04</td><td>430.60</td><td class="zero-cost">$0.00</td><td>146.26</td><td class="zero-cost">$0.00</td><td>10.62</td><td>$185.37</td><td>402.42</td></tr>
+    <tr><td>12</td><td>$148.63</td><td>534.92</td><td>$176.00</td><td>605.08</td><td class="zero-cost">$0.00</td><td>294.70</td><td class="zero-cost">$0.00</td><td>173.10</td><td>$263.71</td><td>585.98</td></tr>
+  </tbody>
+  <tfoot>
+    <tr>
+      <td>Yearly Total</td>
+      <td>$1622.50</td><td>5847.96</td>
+      <td>$1832.52</td><td>6398.88</td>
+      <td class="zero-cost">$0.00</td><td>-1547.45</td>
+      <td class="zero-cost">$0.00</td><td>-4090.01</td>
+      <td>$-678.09</td><td>-2017.56</td>
+    </tr>
+  </tfoot>
+</table>
+
+<h2>*** NATURAL GAS USAGE ***</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th rowspan="2">MONTH</th>
+      <th colspan="2">2020</th>
+      <th colspan="2">2021</th>
+      <th colspan="2">2022</th>
+      <th colspan="2">2023</th>
+      <th colspan="2">2024</th>
+    </tr>
+    <tr>
+        <th class="year-label">COST</th>
+        <th class="year-label">USAGE<br><span class="kwh-label">(therms)</span></th>
+        <th class="year-label">COST</th>
+        <th class="year-label">USAGE<br><span class="kwh-label">(therms)</span></th>
+        <th class="year-label">COST</th>
+        <th class="year-label">USAGE<br><span class="kwh-label">(therms)</span></th>
+        <th class="year-label">COST</th>
+        <th class="year-label">USAGE<br><span class="kwh-label">(therms)</span></th>
+        <th class="year-label">COST</th>
+        <th class="year-label">USAGE<br><span class="kwh-label">(therms)</span></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>1</td><td>$64.12</td><td>42.98</td><td>$66.43</td><td>39.94</td><td>$85.60</td><td>38.90</td><td>$97.41</td><td>34.93</td><td>$77.61</td><td>32.51</td></tr>
+    <tr><td>2</td><td>$45.01</td><td>30.38</td><td>$52.28</td><td>31.51</td><td>$61.75</td><td>28.35</td><td>$153.64</td><td>51.60</td><td>$68.68</td><td>36.96</td></tr>
+    <tr><td>3</td><td>$50.92</td><td>33.50</td><td>$74.67</td><td>44.11</td><td>$49.53</td><td>24.15</td><td>$115.31</td><td>50.10</td><td>$26.39</td><td>29.39</td></tr>
+    <tr><td>4</td><td>$41.18</td><td>26.19</td><td>$70.02</td><td>39.77</td><td>$55.19</td><td>26.03</td><td>$66.09</td><td>35.39</td><td class="zero-cost">$0.00</td><td>35.42</td></tr>
+    <tr><td>5</td><td>N/A</td><td>N/A</td><td>$69.05</td><td>39.73</td><td>$66.01</td><td>29.25</td><td>$36.77</td><td>21.93</td><td class="zero-cost">$0.00</td><td>45.59</td></tr>
+    <tr><td>6</td><td>$23.48</td><td>16.60</td><td>$30.49</td><td>19.82</td><td>$45.59</td><td>20.55</td><td>$25.99</td><td>15.63</td><td class="zero-cost">$0.00</td><td>29.37</td></tr>
+    <tr><td>7</td><td>$26.68</td><td>18.72</td><td>$28.13</td><td>18.93</td><td>$34.04</td><td>15.74</td><td>$32.69</td><td>18.85</td><td class="zero-cost">$0.00</td><td>5.25</td></tr>
+    <tr><td>8</td><td>$21.30</td><td>14.69</td><td>$20.41</td><td>13.65</td><td>$26.26</td><td>12.60</td><td>$20.30</td><td>11.55</td><td class="zero-cost">$0.00</td><td>2.12</td></tr>
+    <tr><td>9</td><td>$14.96</td><td>9.44</td><td>$25.22</td><td>14.72</td><td>$31.29</td><td>13.81</td><td>$28.25</td><td>14.61</td><td class="zero-cost">$0.00</td><td>3.16</td></tr>
+    <tr><td>10</td><td>$25.83</td><td>16.64</td><td>$32.74</td><td>16.74</td><td>$34.86</td><td>14.67</td><td>$45.03</td><td>20.80</td><td class="zero-cost">$0.00</td><td>3.13</td></tr>
+    <tr><td>11</td><td>$54.85</td><td>33.56</td><td>$56.33</td><td>27.07</td><td>$108.64</td><td>45.15</td><td>$56.72</td><td>26.07</td><td>$5.22</td><td>3.11</td></tr>
+    <tr><td>12</td><td>$81.88</td><td>49.32</td><td>$133.32</td><td>62.06</td><td>$126.64</td><td>51.78</td><td>$104.36</td><td>44.11</td><td>$5.42</td><td>2.09</td></tr>
+  </tbody>
+  <tfoot>
+    <tr>
+      <td>Yearly Total</td>
+      <td>$450.21</td><td>292.02</td>
+      <td>$659.09</td><td>368.05</td>
+      <td>$725.40</td><td>320.98</td>
+      <td>$782.56</td><td>345.57</td>
+      <td>$183.32</td><td>228.10</td>
+    </tr>
+  </tfoot>
+</table>
+
+</body>
+</html>
