@@ -151,8 +151,7 @@ class Filter:
 
 def display_summary(data):
     """
-    Displays a formatted summary of the PGE data in two tables (electric and gas),
-    with years displayed side-by-side for each month.
+    Displays a formatted summary of the PGE data, separated by year and usage type.
 
     Args:
         data: A PGEData object containing the usage data.
@@ -191,26 +190,37 @@ def display_summary(data):
             index=['MONTH'],
             columns=['YEAR'],
             aggfunc={'USAGE': 'sum', 'COST': 'sum'},
-            fill_value="N/A"
+            fill_value=None
         )
-        
+
+        # Calculate yearly totals and add them as a row
+        yearly_totals = type_data.groupby('YEAR').agg({'USAGE': 'sum', 'COST': 'sum'})
+        yearly_totals['MONTH'] = 'Yearly Total'
+        yearly_totals = yearly_totals.set_index('MONTH')
+        pivot_table = pd.concat([pivot_table, yearly_totals])
+
         # Flatten MultiIndex columns and format the values
         pivot_table.columns = [f'{col[0]} {col[1]}' for col in pivot_table.columns.values]
+        
+        # Ensure all months are represented
+        all_months = pd.DataFrame({'MONTH': range(1, 13)})
+        all_months['MONTH'] = all_months['MONTH'].astype(str)
+        pivot_table.reset_index(inplace=True)
+        pivot_table['MONTH'] = pivot_table['MONTH'].astype(str)
+        pivot_table = pd.merge(all_months, pivot_table, on='MONTH', how='outer')
+
+        # Reorder columns to have years in ascending order
+        year_cols = [col for col in pivot_table.columns if 'USAGE' in col or 'COST' in col]
+        year_cols.sort(key=lambda x: int(x.split()[-1]))  # Sort by year numerically
+        pivot_table = pivot_table[['MONTH'] + year_cols]
+
+        # Format the values in the pivot table after merging
         for col in pivot_table.columns:
             if 'USAGE' in col:
                 unit = type_data['UNITS'].dropna().iloc[0] if not type_data['UNITS'].dropna().empty else 'N/A'
                 pivot_table[col] = pivot_table[col].apply(lambda x: f"{x:.2f} {unit}" if pd.notna(x) else "N/A")
             elif 'COST' in col:
                 pivot_table[col] = pivot_table[col].apply(lambda x: f"${x:.2f}" if pd.notna(x) else "N/A")
-
-        # Ensure all months are represented
-        all_months = pd.DataFrame({'MONTH': range(1, 13)})
-        pivot_table = pd.merge(all_months, pivot_table, on='MONTH', how='left')
-
-        # Reorder columns to have years in ascending order
-        year_cols = [col for col in pivot_table.columns if 'USAGE' in col or 'COST' in col]
-        year_cols.sort(key=lambda x: int(x.split()[-1]))  # Sort by year numerically
-        pivot_table = pivot_table[['MONTH'] + year_cols]
 
         # Display the pivot table
         print(pivot_table.to_string(index=False))
