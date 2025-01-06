@@ -217,40 +217,78 @@ def summary_data(data):
 
     return summary
 
+def display_table(table_data, usage_type, years):
+    """
+    Displays the data for a given usage type in a formatted table.
+    """
+    print(f"\n*** {usage_type.upper()} ***\n")
+
+    if table_data.empty:
+        print("No data available.\n")
+        return
+
+    # Display the table
+    print(table_data.to_string(index=False))
+    print("\n")
+
 def display(summary_data):
     """
-    Displays the summary data in a formatted way.
-
-    Args:
-        summary_data: A dictionary containing the summary data, as returned by summary_data().
+    Displays the summary data in formatted tables.
     """
-
     if not summary_data:
         print("No data to display.")
         return
 
-    for year, usage_types in summary_data.items():
-        print(f"----- {year} -----")
-        for usage_type, data in usage_types.items():
-            print(f"\n*** {usage_type.upper()} ***\n")
+    usage_types = ["Electric usage", "Natural gas usage"]
+    years = sorted(summary_data.keys())
 
-            if data['total_usage'] is None:
-                print("No data available.\n")
-                continue
+    for usage_type in usage_types:
+        all_type_monthly_data = []
 
-            total_cost_str = f"${data['total_cost']:.2f}" if pd.notna(data['total_cost']) else "N/A"
-            print(f"Total Usage: {data['total_usage']:.2f} {data['unit']}")
-            print(f"Total Cost: {total_cost_str}")
+        for year in years:
+            if usage_type in summary_data[year]:
+                type_data = summary_data[year][usage_type]
+                monthly_data = type_data['monthly_data'].copy()
+                unit = type_data['unit']
 
-            if data['monthly_data'] is not None:
-                # Format monthly data
-                monthly_data = data['monthly_data'].copy()
-                monthly_data['Monthly Usage'] = monthly_data.apply(lambda row: f"{row['Monthly Usage']:.2f} {data['unit']}" if pd.notna(row['Monthly Usage']) else "N/A", axis=1)
-                monthly_data['Monthly Cost'] = monthly_data.apply(lambda row: f"${row['Monthly Cost']:.2f}" if pd.notna(row['Monthly Cost']) else "N/A", axis=1)
-                
-                print("\nMonthly Usage and Cost:")
-                print(monthly_data.to_string(index=False))
-                print("\n")
+                # Add year columns
+                monthly_data[f'COST {year}'] = monthly_data['Monthly Cost'].apply(lambda x: f"${x:.2f}" if pd.notna(x) else "N/A")
+                monthly_data[f'USAGE {year}'] = monthly_data['Monthly Usage'].apply(lambda x: f"{x:.2f} {unit}" if pd.notna(x) else "N/A")
+
+                # Remove original monthly columns
+                monthly_data.drop(['Monthly Usage', 'Monthly Cost'], axis=1, inplace=True)
+
+                all_type_monthly_data.append(monthly_data)
+
+        # Combine data for all years for this type
+        combined_monthly_data = pd.concat(all_type_monthly_data, axis=1)
+
+        # Remove duplicate 'MONTH' columns
+        combined_monthly_data = combined_monthly_data.loc[:,~combined_monthly_data.columns.duplicated()]
+
+        # Calculate yearly totals
+        yearly_totals = []
+        for year in years:
+            if usage_type in summary_data[year]:
+                type_data = summary_data[year][usage_type]
+                total_usage = type_data['total_usage']
+                total_cost = type_data['total_cost']
+                unit = type_data['unit']
+
+                total_cost_str = f"${total_cost:.2f}" if pd.notna(total_cost) else "N/A"
+                yearly_totals.append((total_cost_str, f"{total_usage:.2f} {unit}"))
+            else:
+                yearly_totals.append(("N/A", "N/A"))
+
+        # Add yearly totals to DataFrame
+        yearly_totals_df = pd.DataFrame({'MONTH': ['Yearly Total']})
+        for i, year in enumerate(years):
+            yearly_totals_df[f'COST {year}'] = [yearly_totals[i][0]]
+            yearly_totals_df[f'USAGE {year}'] = [yearly_totals[i][1]]
+        combined_monthly_data = pd.concat([combined_monthly_data, yearly_totals_df])
+
+        # Display the table for this usage type
+        display_table(combined_monthly_data, usage_type, years)
 
 # Example usage:
 if __name__ == "__main__":
